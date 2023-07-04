@@ -6,14 +6,12 @@ export default class MyPlugin extends Plugin {
 
 	async onload() {
 		this.registerEvent(
-			this.app.workspace.on('layout-change', () => {
-				const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-				this.registerEditorClickEvent(view);
-			})
+			this.app.workspace.on('active-leaf-change', this.addMyListener)
 		);
 	}
 
-	registerEditorClickEvent(view: MarkdownView | null) {
+	addMyListener = () => {
+		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 		if (view && !view.containerEl.getAttribute(this.onclickAttribute)) {
 			view.containerEl.addEventListener('click', (evt: MouseEvent) => {
 				const innerView = this.getInnerView()
@@ -24,7 +22,6 @@ export default class MyPlugin extends Plugin {
 						const editor = view.editor
 						const lastLine = editor.lastLine();
 						const lastLineText = editor.getLine(lastLine)
-						console.log({lastLineText})
 						if (lastLineText.trim() !== '') {
 							editor.exec('goEnd')
 							editor.exec('newlineAndIndent')
@@ -39,7 +36,7 @@ export default class MyPlugin extends Plugin {
 	}
 
 	onunload() {
-
+		super.onunload()
 	}
 
 	getInnerView(): HTMLElement | null {
