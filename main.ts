@@ -22,26 +22,26 @@ export default class MyPlugin extends Plugin {
 				}
 
 				const last = editor.lastLine();
-				const lastLine = editor.getLine(last);
-				const lastIsBlank = lastLine.trim() === "";
-				const secondFromLastIsBlank =
-					last - 1 >= 0 && editor.getLine(last - 1).trim() === "";
-				// default branch: if (lastLineIsBlank)
-				let threshold = 0;
-				let linesNeeded = 1;
-				if (lastIsBlank && secondFromLastIsBlank) {
+				const lastLineText = editor.getLine(last);
+				const lastLineIsBlank = lastLineText.trim() === "";
+
+				if (
+					lastLineIsBlank &&
+					(last == 0 || editor.getLine(last - 1).trim() === "")
+				) {
 					return;
-				} else if (!lastIsBlank) {
-					const lineHeight = document.defaultView
-						?.getComputedStyle(innerView)
-						.lineHeight.slice(0, -2);
-					threshold = lineHeight ? Number.parseFloat(lineHeight) : 24;
-					++linesNeeded;
 				}
 
+				const lineHeight =
+					document.defaultView?.getComputedStyle(innerView)
+						?.lineHeight ?? "24";
+				// Trailing 'px'/'pt' will be ignored by Number.parseFloat
+				const lineHeightInPx = Number.parseFloat(lineHeight);
+				const threshold = lastLineIsBlank ? 0 : lineHeightInPx;
+				const newlines = lastLineIsBlank ? 1 : 2;
 				const distance = evt.offsetY - innerView.innerHeight;
 				if (distance > threshold) {
-					for (let i = 0; i < linesNeeded; ++i) {
+					for (let i = 0; i < newlines; ++i) {
 						editor.exec("newlineAndIndent");
 					}
 				}
@@ -50,9 +50,7 @@ export default class MyPlugin extends Plugin {
 		}
 	};
 
-	onunload() {
-		super.onunload();
-	}
+	onunload() {}
 
 	getInnerView(): HTMLElement | null {
 		return document.querySelector(
