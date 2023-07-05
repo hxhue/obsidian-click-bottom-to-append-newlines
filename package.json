@@ -1,7 +1,7 @@
 {
 	"name": "obsidian-click-bottom-to-append-newline",
-	"version": "1.0.2",
-	"description": "A plugin enabling the editor to append a newline when clicked at the bottom blank.",
+	"version": "1.0.3",
+	"description": "A plugin enabling the editor to append newlines when clicked at the bottom blank.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",

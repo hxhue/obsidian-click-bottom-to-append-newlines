@@ -14,21 +14,36 @@ export default class MyPlugin extends Plugin {
 		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 		if (view && !view.containerEl.getAttribute(this.onclickAttribute)) {
 			view.containerEl.addEventListener("click", (evt: MouseEvent) => {
+				const editor = view.editor;
 				const innerView = this.getInnerView();
-				if (innerView) {
-					const textH = innerView.innerHeight;
-					const mouseY = evt.offsetY;
-					if (mouseY > textH) {
-						const editor = view.editor;
-						const lastLine = editor.lastLine();
-						const lastLineText = editor.getLine(lastLine);
-						if (lastLineText.trim() !== "") {
-							editor.exec("goEnd");
-							editor.exec("newlineAndIndent");
-						}
-					}
-				} else {
+				if (!innerView) {
 					new Notice(this.manifest.id + ": cannot get inner view!");
+					return;
+				}
+
+				const last = editor.lastLine();
+				const lastLine = editor.getLine(last);
+				const lastIsBlank = lastLine.trim() === "";
+				const secondFromLastIsBlank =
+					last - 1 >= 0 && editor.getLine(last - 1).trim() === "";
+				// default branch: if (lastLineIsBlank)
+				let threshold = 0;
+				let linesNeeded = 1;
+				if (lastIsBlank && secondFromLastIsBlank) {
+					return;
+				} else if (!lastIsBlank) {
+					const lineHeight = document.defaultView
+						?.getComputedStyle(innerView)
+						.lineHeight.slice(0, -2);
+					threshold = lineHeight ? Number.parseFloat(lineHeight) : 24;
+					++linesNeeded;
+				}
+
+				const distance = evt.offsetY - innerView.innerHeight;
+				if (distance > threshold) {
+					for (let i = 0; i < linesNeeded; ++i) {
+						editor.exec("newlineAndIndent");
+					}
 				}
 			});
 			view.containerEl.setAttribute(this.onclickAttribute, "true");
