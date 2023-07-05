@@ -13,48 +13,74 @@ export default class MyPlugin extends Plugin {
 	addMyListener = () => {
 		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 		if (view && !view.containerEl.getAttribute(this.onclickAttribute)) {
-			view.containerEl.addEventListener("click", (evt: MouseEvent) => {
+			const scroller = document.querySelector("div.cm-scroller");
+			if (!scroller) {
+				new Notice(this.manifest.id + ": cannot get scroller view!");
+				return;
+			}
+
+			scroller.addEventListener("click", (evt: MouseEvent) => {
+				const distance = (() => {
+					let elem = evt.target as HTMLElement;
+					let mouseY = evt.offsetY;
+
+					// A child receives the event
+					while (elem !== scroller) {
+						mouseY += elem.offsetTop;
+						elem = elem.offsetParent as HTMLElement;
+					}
+
+					// Get the last element: possibly a paragraph or a picture
+					elem = document.querySelector(
+						"div.cm-content.cm-lineWrapping"
+					)?.lastElementChild as HTMLElement;
+
+					let contentY = elem.offsetTop + elem.offsetHeight;
+					while (elem.offsetParent !== scroller) {
+						elem = elem.offsetParent as HTMLElement;
+						contentY += elem.offsetTop + elem.offsetHeight;
+					}
+					return mouseY - contentY;
+				})();
+
+				if (distance < 0) {
+					return; // Click didn't happen at the bottom
+				}
+
 				const editor = view.editor;
-				const innerView = this.getInnerView();
-				if (!innerView) {
-					new Notice(this.manifest.id + ": cannot get inner view!");
-					return;
-				}
-
 				const last = editor.lastLine();
-				const lastLineText = editor.getLine(last);
-				const lastLineIsBlank = lastLineText.trim() === "";
+				const lastLineIsBlank = editor.getLine(last).trim() === "";
 
-				if (
-					lastLineIsBlank &&
-					(last == 0 || editor.getLine(last - 1).trim() === "")
-				) {
-					return;
+				if (lastLineIsBlank && last == 0) {
+					return; // The document is one blank line
 				}
 
-				const lineHeight =
-					document.defaultView?.getComputedStyle(innerView)
-						?.lineHeight ?? "24";
-				// Trailing 'px'/'pt' will be ignored by Number.parseFloat
-				const lineHeightInPx = Number.parseFloat(lineHeight);
+				if (lastLineIsBlank && editor.getLine(last - 1).trim() === "") {
+					return; // The document ends with 2 blank lines
+				}
+
+				const lineHeightInPx = (() => {
+					const height =
+						document.defaultView?.getComputedStyle(scroller)
+							?.lineHeight ?? "24px";
+					// Trailing 'px' will be ignored by Number.parseFloat
+					return Number.parseFloat(height);
+				})();
 				const threshold = lastLineIsBlank ? 0 : lineHeightInPx;
 				const newlines = lastLineIsBlank ? 1 : 2;
-				const distance = evt.offsetY - innerView.innerHeight;
+
 				if (distance > threshold) {
+					editor.exec("goDown");
+					editor.exec("goRight");
 					for (let i = 0; i < newlines; ++i) {
 						editor.exec("newlineAndIndent");
 					}
 				}
 			});
+
 			view.containerEl.setAttribute(this.onclickAttribute, "true");
 		}
 	};
 
 	onunload() {}
-
-	getInnerView(): HTMLElement | null {
-		return document.querySelector(
-			"body > div.app-container > div.horizontal-main-container > div > div.workspace-split.mod-vertical.mod-root > div > div.workspace-tab-container > div > div > div.view-content > div.markdown-source-view.cm-s-obsidian.mod-cm6.is-folding.is-live-preview.is-readable-line-width.node-insert-event > div > div.cm-scroller > div.cm-sizer > div.cm-contentContainer > div"
-		);
-	}
 }
