@@ -13,13 +13,20 @@ export default class MyPlugin extends Plugin {
 	addMyListener = () => {
 		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 		if (view && !view.containerEl.getAttribute(this.onclickAttribute)) {
-			const scroller = document.querySelector("div.cm-scroller");
+			const scroller = document.querySelector(
+				"div.cm-scroller"
+			) as HTMLElement;
+
 			if (!scroller) {
 				new Notice(this.manifest.id + ": cannot get scroller view!");
 				return;
 			}
 
-			scroller.addEventListener("click", (evt: MouseEvent) => {
+			scroller.addEventListener("mousedown", (evt: MouseEvent) => {
+				if (evt.button !== 0) {
+					return; // Not left click
+				}
+				
 				const distance = (() => {
 					let elem = evt.target as HTMLElement;
 					let mouseY = evt.offsetY;
@@ -70,11 +77,13 @@ export default class MyPlugin extends Plugin {
 				const newlines = lastLineIsBlank ? 1 : 2;
 
 				if (distance > threshold) {
+					const caretColor = scroller.style.caretColor
 					editor.exec("goDown");
 					editor.exec("goRight");
 					for (let i = 0; i < newlines; ++i) {
 						editor.exec("newlineAndIndent");
 					}
+					scroller.style.caretColor = caretColor
 				}
 			});
 
