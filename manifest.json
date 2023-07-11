@@ -1,9 +1,9 @@
 {
-	"id": "click-bottom-to-append-newline",
+	"id": "click-bottom-to-append-new-lines",
 	"name": "Click bottom to append new lines",
-	"version": "1.0.7",
+	"version": "1.0.8",
 	"minAppVersion": "1.3.5",
-	"description": "This plugin allows you to easily add new lines to your document by clicking at the bottom. No configuration is required, but please note that you may need to reopen tabs after disabling the plugin.",
+	"description": "This plugin allows you to easily add new lines to your document by clicking at the bottom. No configuration is required.",
 	"author": "Simon Yu",
 	"isDesktopOnly": true
 }
