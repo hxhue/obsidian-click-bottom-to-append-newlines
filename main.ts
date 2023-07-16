@@ -2,24 +2,25 @@ import { MarkdownView, Notice, Plugin } from "obsidian";
 import { setTimeout } from "timers";
 
 export default class AppendNewlinesPlugin extends Plugin {
-	readonly tagAttribute = this.manifest.id + "-tag-attribute";
 	readonly scrollerSelector = "div.cm-scroller";
 	readonly lineWrappingSelector = "div.cm-content.cm-lineWrapping";
 
-	// There may be multiple listeners in the future, so we use 'object' as the value type.
-	listenerMap = new WeakMap<HTMLElement, { mousedown: EventListener }>();
+	// Check whether an element already has the listener(s).
+	targetSet = new WeakSet<HTMLElement>();
 
 	// Add event listeners to the markdown view.
-	addEventListeners(markdownView: MarkdownView) {
+	tryAddingEventListener(markdownView: MarkdownView) {
 		const editor = markdownView.editor;
 		const containerEl = markdownView.containerEl;
 		const scroller = containerEl.querySelector(this.scrollerSelector) as HTMLElement;
+		
 		if (!scroller) {
 			new Notice(this.manifest.id + ": cannot get scroller view!");
 			return;
 		}
-		// Listeners exist.
-		if (this.listenerMap.get(scroller) !== undefined) {
+
+		// Listener(s) exist.
+		if (this.targetSet.has(scroller)) {
 			return;
 		}
 
@@ -109,43 +110,30 @@ export default class AppendNewlinesPlugin extends Plugin {
 			}
 			// Add a one-time event listener.
 			const mousedownTime = performance.now();
-			scroller.addEventListener("mouseup", (e) => mouseup(e, mousedownTime), {
+			this.registerDomEvent(scroller, "mouseup", (e) => mouseup(e, mousedownTime), {
 				once: true,
 			});
 		};
 
-		scroller.addEventListener("mousedown", mousedown);
-		this.listenerMap.set(scroller, { mousedown });
+		this.registerDomEvent(scroller, "mousedown", mousedown);
+		this.targetSet.add(scroller);
 	}
 
 	async onload() {
 		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 		if (view) {
-			this.addEventListeners(view);
+			this.tryAddingEventListener(view);
 		}
 		this.registerEvent(
 			this.app.workspace.on("active-leaf-change", (leaf) => {
 				if (leaf?.view.getViewType() === "markdown") {
-					this.addEventListeners(leaf.view as MarkdownView);
+					this.tryAddingEventListener(leaf.view as MarkdownView);
 				}
 			})
 		);
 	}
 
 	onunload() {
-		app.workspace.iterateAllLeaves((leaf) => {
-			if (leaf.view.getViewType() !== "markdown") {
-				return;
-			}
-			const scroller = leaf.view.containerEl.querySelector(
-				this.scrollerSelector
-			) as HTMLElement;
-			const listeners = this.listenerMap.get(scroller);
-			if (listeners === undefined) {
-				return;
-			}
-			const { mousedown } = listeners;
-			scroller.removeEventListener("mousedown", mousedown);
-		});
+		// Nothing to do.
 	}
 }
