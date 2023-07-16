@@ -12,7 +12,8 @@ export default class AppendNewlinesPlugin extends Plugin {
 	// Add event listeners to the markdown view.
 	addEventListeners(markdownView: MarkdownView) {
 		const editor = markdownView.editor;
-		const scroller = document.querySelector(this.scrollerSelector) as HTMLElement;
+		const containerEl = markdownView.containerEl;
+		const scroller = containerEl.querySelector(this.scrollerSelector) as HTMLElement;
 		if (!scroller) {
 			new Notice(this.manifest.id + ": cannot get scroller view!");
 			return;
@@ -38,7 +39,7 @@ export default class AppendNewlinesPlugin extends Plugin {
 				}
 
 				// Get the last element: possibly a paragraph or a picture
-				elem = document.querySelector("div.cm-content.cm-lineWrapping")
+				elem = containerEl.querySelector("div.cm-content.cm-lineWrapping")
 					?.lastElementChild as HTMLElement;
 				let contentY = elem.offsetTop + elem.offsetHeight;
 				while (elem.offsetParent !== scroller) {
@@ -65,7 +66,7 @@ export default class AppendNewlinesPlugin extends Plugin {
 
 			// Trailing 'px' from `.lineHeight` will be ignored by Number.parseFloat
 			const lineHeightInPx = Number.parseFloat(
-				document.defaultView?.getComputedStyle(scroller)?.lineHeight ?? "24"
+				containerEl.win.getComputedStyle(scroller)?.lineHeight ?? "24"
 			);
 			const threshold = lastLineIsBlank ? 0 : lineHeightInPx;
 			const newlines = lastLineIsBlank ? 1 : 2;
@@ -94,7 +95,7 @@ export default class AppendNewlinesPlugin extends Plugin {
 			if (lines <= 0) {
 				return;
 			}
-			let paragraph = document.querySelector(this.lineWrappingSelector)
+			let paragraph = containerEl.querySelector(this.lineWrappingSelector)
 				?.lastElementChild as HTMLElement;
 			while (paragraph && !paragraph.className.includes("cm-line")) {
 				paragraph = paragraph.previousElementSibling as HTMLElement;
